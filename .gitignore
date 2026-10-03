@@ -1,0 +1,29 @@
+# Java / Maven
+target/
+**/target/
+.mvn/wrapper/maven-wrapper.jar
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/.npm-cache/
+frontend/out/
+npm-debug.log*
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local runtime data
+infra/data/
+work/
+.npm-cache/

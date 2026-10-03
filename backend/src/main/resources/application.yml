@@ -1,0 +1,63 @@
+server:
+  port: 8080
+spring:
+  application.name: enterprise-audit-agent-platform
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/audit_platform}
+    username: ${SPRING_DATASOURCE_USERNAME:audit_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:change-me-local-only}
+  jpa:
+    open-in-view: false
+    hibernate.ddl-auto: validate
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: audit-ingestion
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.enterpriseaudit.platform
+        spring.json.value.default.type: com.enterpriseaudit.platform.ingestion.IngestionMessage
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8081/realms/audit}
+          jwk-set-uri: ${OIDC_JWK_SET_URI:http://localhost:8081/realms/audit/protocol/openid-connect/certs}
+  ai:
+    ollama:
+      base-url: ${SPRING_AI_OLLAMA_BASE_URL:http://localhost:11434}
+      chat.options.model: ${OLLAMA_CHAT_MODEL:llama3.2}
+      embedding.model: ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
+    vectorstore:
+      pgvector:
+        initialize-schema: false
+        table-name: document_embeddings
+        dimensions: 768
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+    mcp:
+      server:
+        protocol: STREAMABLE
+app:
+  ingestion:
+    topic: document-ingestion-topic
+    outbox-poll-ms: 1000
+  upload:
+    max-bytes: 52428800
+  s3:
+    endpoint: ${APP_S3_ENDPOINT:http://localhost:9000}
+    region: us-east-1
+    bucket: ${S3_BUCKET:audit-documents}
+    access-key: ${S3_ACCESS_KEY:minio}
+    secret-key: ${S3_SECRET_KEY:change-me-local-only}
+management:
+  endpoints.web.exposure.include: health,info,metrics,prometheus
+  endpoint.health.probes.enabled: true
+  tracing.sampling.probability: 0.1
