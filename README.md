@@ -1,38 +1,50 @@
-# Enterprise Governance & Audit Agent Platform
+# Plataforma de Governança e Auditoria Empresarial
 
-Multi-tenant document audit platform with asynchronous ingestion, PostgreSQL/pgvector, Kafka, Spring AI and a Next.js console.
+Plataforma multi-tenant de auditoria documental com ingestão assíncrona, PostgreSQL/pgvector, Kafka, Spring AI e console Next.js.
 
-> Local development scaffold. eSocial and employee-history tools currently use demo adapters. Do not use synthetic or real medical/workplace documents in an untrusted environment.
+> Scaffold para desenvolvimento local. As ferramentas de eSocial e histórico de colaboradores usam adaptadores de demonstração. Não utilize documentos médicos ou de ambiente de trabalho (sintéticos ou reais) em ambientes não confiáveis.
 
-## Components
+## Componentes
 
-- `backend/`: Java 21, Spring Boot 4, Spring AI 2, Kafka, PostgreSQL, MCP and S3-compatible storage.
-- `frontend/`: Next.js 15 console for document uploads and streaming audit questions.
-- `infra/`: PostgreSQL/pgvector and local service configuration.
-- `docs/`: architecture decisions and local security notes.
+- `backend/`: Java 21, Spring Boot 4, Spring AI 2, Kafka, PostgreSQL, MCP e armazenamento compatível com S3.
+- `frontend/`: console Next.js 15 para upload de documentos e perguntas de auditoria em streaming.
+- `infra/`: PostgreSQL/pgvector e configuração de serviços locais.
+- `docs/`: decisões de arquitetura e notas de segurança local.
 
-## Start local dependencies
+## Subir dependências locais
 
-1. Install Docker Desktop, Java 21 and Maven 3.9+. Copy `.env.example` to `.env` and replace local passwords.
-2. Start services with `docker compose up -d postgres kafka minio ollama`.
-3. Pull local models: `docker compose exec ollama ollama pull llama3.2` and `docker compose exec ollama ollama pull nomic-embed-text`.
-4. Start the API: `cd backend; mvn spring-boot:run`.
-5. Start the web console: `cd frontend; npm install; npm run dev`.
+1. Instale Docker Desktop, Java 21 e Maven 3.9+. Copie `.env.example` para `.env` e substitua as senhas locais.
+2. Inicie os serviços com `docker compose up -d postgres kafka minio ollama`.
+3. Baixe os modelos locais: `docker compose exec ollama ollama pull llama3.2` e `docker compose exec ollama ollama pull nomic-embed-text`.
+4. Inicie a API: `cd backend; mvn spring-boot:run`.
+5. Inicie o console web: `cd frontend; npm install; npm run dev`.
 
-The API requires a JWT from an OIDC issuer. Set `OIDC_ISSUER_URI` or `OIDC_JWK_SET_URI` to a reachable issuer and include a UUID `tenant_id` claim. For the seeded local tenant, use `00000000-0000-0000-0000-000000000001`. The console accepts the bearer token in its development-only session field. An OIDC login flow is intentionally not bundled.
+A API exige um JWT de um emissor OIDC. Configure `OIDC_ISSUER_URI` ou `OIDC_JWK_SET_URI` apontando para um emissor acessível e inclua a claim UUID `tenant_id`. Para o tenant local já provisionado, use `00000000-0000-0000-0000-000000000001`. O console aceita o bearer token no campo de sessão exclusivo para desenvolvimento. Um fluxo de login OIDC não está incluído propositalmente.
+
+## Ver só a interface web
+
+Se quiser apenas visualizar a cara do sistema, sem subir toda a stack:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Abra **http://localhost:3000** no navegador. Upload e chat só funcionam com backend e dependências ativas.
 
 ## Endpoints
 
-- `POST /api/v1/documents/upload` — multipart field `file`; returns document ID and ingestion state.
-- `GET /api/v1/documents/{id}` — tenant-scoped ingestion state.
-- `POST /api/v1/chat/stream` — JSON `{ "question": "..." }`; streams `text/event-stream` events (`token`, `citations`, `done`).
-- `GET /actuator/health` — service health.
-- MCP Streamable HTTP server — `/mcp`; protect with the same OIDC resource-server policy before exposing outside localhost.
+- `POST /api/v1/documents/upload` — campo multipart `file`; retorna ID do documento e estado da ingestão.
+- `GET /api/v1/documents/{id}` — estado da ingestão escopado por tenant.
+- `POST /api/v1/chat/stream` — JSON `{ "question": "..." }`; transmite eventos `text/event-stream` (`token`, `citations`, `done`).
+- `GET /actuator/health` — saúde do serviço.
+- Servidor MCP Streamable HTTP — `/mcp`; proteja com a mesma política OIDC resource-server antes de expor fora do localhost.
 
-## Build and checks
+## Build e verificações
 
-- Backend: `cd backend; mvn verify` (integration tests use Testcontainers and require Docker).
+- Backend: `cd backend; mvn verify` (testes de integração usam Testcontainers e exigem Docker).
 - Frontend: `cd frontend; npm ci; npm run lint; npm test; npm run build`.
-- CI runs both builds on pushes and pull requests.
+- O CI executa os dois builds em pushes e pull requests.
 
-The Postgres bootstrap superuser is separate from `audit_app`; the API connects as `audit_app`, a non-superuser role subject to forced RLS. GitHub repository creation is separate from this local scaffold. Create `enterprise-audit-agent-platform` as a **private** repository, then add it as `origin` and push `main`.
+O superusuário de bootstrap do Postgres é separado de `audit_app`; a API conecta como `audit_app`, um papel sem privilégios de superusuário sujeito a RLS forçado.

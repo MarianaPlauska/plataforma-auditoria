@@ -12,6 +12,6 @@ public final class TenantContext {
         return tenantId;
     }
 
-    static void set(UUID tenantId) { CURRENT.set(tenantId); }
-    static void clear() { CURRENT.remove(); }
+    public static void set(UUID tenantId) { CURRENT.set(tenantId); }
+    public static void clear() { CURRENT.remove(); }
 }

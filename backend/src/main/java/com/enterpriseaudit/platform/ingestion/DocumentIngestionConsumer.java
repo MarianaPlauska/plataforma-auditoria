@@ -1,7 +1,6 @@
 package com.enterpriseaudit.platform.ingestion;
 
 import com.enterpriseaudit.platform.security.TenantContext;
-import org.apache.tika.Tika;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.pdf.PDFParserConfig;
@@ -21,7 +20,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.util.*;
 
 @Component

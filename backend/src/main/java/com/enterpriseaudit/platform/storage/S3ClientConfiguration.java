@@ -12,7 +12,7 @@ import software.amazon.awssdk.services.s3.S3Configuration;
 import java.net.URI;
 
 @Configuration
-public class S3Configuration {
+public class S3ClientConfiguration {
     @Bean
     S3Client s3Client(@Value("${app.s3.endpoint}") String endpoint,
                       @Value("${app.s3.region}") String region,
