@@ -1,0 +1,11 @@
+---
+description: Preferências de código da Maria para este projeto
+alwaysApply: true
+---
+
+# Padrões de código
+
+- Use poucos comentários. Quando necessários, mantenha-os curtos e em português do Brasil.
+- Coloque a chave de abertura em uma linha própria para blocos e métodos.
+- Prefira nomes simples e diretos para métodos e variáveis, sem perder clareza.
+- Faça alterações localizadas e evite reformatações sem relação com a tarefa.

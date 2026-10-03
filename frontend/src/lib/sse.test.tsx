@@ -1,7 +1,32 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
 import { readAuditEvents } from "./sse";
-import Home from "@/app/page";
+import { Dashboard } from "@/components/Dashboard";
+
+vi.mock("@/components/AuthProvider", () => ({
+  useAuth: () => ({
+    session: {
+      accessToken: "fake-token",
+      email: "auditor@local.demo",
+      name: "Auditor Demonstração",
+      tenantId: "00000000-0000-0000-0000-000000000001",
+    },
+    logout: vi.fn(),
+  }),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+}));
+
+function renderPage() {
+  return render(
+    <MantineProvider>
+      <Dashboard />
+    </MantineProvider>,
+  );
+}
 
 describe("readAuditEvents", () => {
   it("decodes SSE JSON frames across partial network chunks", async () => {
@@ -20,8 +45,10 @@ describe("readAuditEvents", () => {
   });
 
   it("renders the upload and audit chat workspaces", () => {
-    render(<Home />);
+    renderPage();
     expect(screen.getByRole("heading", { name: "Adicionar evidência" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Pergunte ao agente" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Registro de evidências" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Resumo da ingestão")).toBeInTheDocument();
   });
 });
