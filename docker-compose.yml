@@ -59,6 +59,7 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me-local-only}
+      KC_HOSTNAME: http://localhost:8081
     ports: ["8081:8081"]
     volumes:
       - ./infra/keycloak:/opt/keycloak/data/import:ro
@@ -72,8 +73,13 @@ services:
       SPRING_DATASOURCE_USERNAME: audit_app
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_APP_PASSWORD:-change-me-local-only}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-http://localhost:8081/realms/audit}
+      OIDC_JWK_SET_URI: http://keycloak:8081/realms/audit/protocol/openid-connect/certs
       APP_S3_ENDPOINT: http://minio:9000
       SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+      APP_TASKS_WEBHOOK_URL: ${TASK_WEBHOOK_URL:-}
+      APP_TASKS_WEBHOOK_SECRET: ${TASK_WEBHOOK_SECRET:-}
+      APP_TASKS_WORKSPACE_URL: ${APP_BASE_URL:-http://localhost:3000}
     ports: ["8080:8080"]
     depends_on:
       postgres: {condition: service_healthy}
@@ -85,9 +91,12 @@ services:
     build: ./frontend
     profiles: ["app"]
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
-      OIDC_ISSUER_URI: http://keycloak:8081/realms/audit
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      BACKEND_API_URL: http://backend:8080
+      OIDC_ISSUER_URI: ${OIDC_ISSUER_URI:-http://localhost:8081/realms/audit}
+      OIDC_INTERNAL_ISSUER_URI: http://keycloak:8081/realms/audit
       OIDC_CLIENT_ID: audit-console
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:-replace-with-at-least-32-random-characters}
     ports: ["3000:3000"]
     depends_on: [backend, keycloak]
 

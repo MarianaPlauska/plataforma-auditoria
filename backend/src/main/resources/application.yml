@@ -11,6 +11,10 @@ spring:
     hibernate.ddl-auto: validate
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 52MB
+      max-request-size: 52MB
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -46,6 +50,11 @@ spring:
       server:
         protocol: STREAMABLE
 app:
+  tasks:
+    webhook-url: ${APP_TASKS_WEBHOOK_URL:}
+    webhook-secret: ${APP_TASKS_WEBHOOK_SECRET:}
+    workspace-url: ${APP_TASKS_WORKSPACE_URL:http://localhost:3000}
+    webhook-poll-ms: 5000
   ingestion:
     topic: document-ingestion-topic
     outbox-poll-ms: 1000

@@ -1,13 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { AuthSession, clearStoredToken, decodeSession, getStoredToken, storeToken } from "@/lib/auth";
+import { AuthSession } from "@/lib/auth";
 
 type AuthContextValue = {
   ready: boolean;
   session: AuthSession | null;
-  login: (accessToken: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -17,22 +16,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
-    const token = getStoredToken();
-    setSession(token ? decodeSession(token) : null);
-    setReady(true);
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const data = await response.json() as AuthSession & { authenticated: boolean };
+        return data.authenticated ? data : null;
+      })
+      .then((data) => {
+        if (active) setSession(data);
+      })
+      .catch(() => {
+        if (active) setSession(null);
+      })
+      .finally(() => {
+        if (active) setReady(true);
+      });
+    return () => { active = false; };
   }, []);
 
-  const login = useCallback((accessToken: string) => {
-    storeToken(accessToken);
-    setSession(decodeSession(accessToken));
-  }, []);
-
-  const logout = useCallback(() => {
-    clearStoredToken();
+  const logout = useCallback(async () => {
     setSession(null);
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        window.location.assign("/login");
+        return;
+      }
+      const data = await response.json() as { redirectTo?: string };
+      window.location.assign(data.redirectTo ?? "/login");
+    } catch {
+      window.location.assign("/login");
+    }
   }, []);
 
-  const value = useMemo(() => ({ ready, session, login, logout }), [ready, session, login, logout]);
+  const value = useMemo(() => ({ ready, session, logout }), [ready, session, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -5,15 +5,26 @@
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "AUDIT_ADMIN" },
+      { "name": "AUDIT_ANALYST" },
+      { "name": "SST_REVIEWER" },
+      { "name": "HR_INTEGRATION" }
+    ]
+  },
   "clients": [
     {
       "clientId": "audit-console",
       "name": "Audit Desk Console",
       "enabled": true,
       "publicClient": true,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "standardFlowEnabled": true,
       "redirectUris": ["http://localhost:3000/*"],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      },
       "webOrigins": ["http://localhost:3000"],
       "protocol": "openid-connect",
       "protocolMappers": [
@@ -45,6 +56,7 @@
       "attributes": {
         "tenant_id": ["00000000-0000-0000-0000-000000000001"]
       },
+      "realmRoles": ["AUDIT_ADMIN", "AUDIT_ANALYST", "SST_REVIEWER", "HR_INTEGRATION"],
       "credentials": [
         {
           "type": "password",

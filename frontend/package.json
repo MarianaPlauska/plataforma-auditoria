@@ -14,7 +14,9 @@
     "@mantine/dropzone": "^7.17.8",
     "@mantine/hooks": "^7.17.8",
     "@tabler/icons-react": "^3.48.0",
+    "iron-session": "^9.0.1",
     "next": "15.5.25",
+    "openid-client": "^6.8.8",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },

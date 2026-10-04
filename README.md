@@ -1,6 +1,6 @@
 # Plataforma de Governança e Auditoria Empresarial
 
-Plataforma multi-tenant de auditoria documental com ingestão assíncrona, PostgreSQL/pgvector, Kafka, Spring AI e console Next.js. A itenção é desenvolver um estudo que p
+Plataforma multi-tenant para apoiar auditorias de SST e governança documental. O fluxo inclui catálogo versionado de controles NR-1/GRO/PGR, registro de achados e evidências, revisão humana, importação mínima de dados de RH e acompanhamento de tarefas. Documentos seguem por ingestão assíncrona, com PostgreSQL/pgvector, Kafka, Spring AI e console Next.js.
 
 > Scaffold para desenvolvimento local. As ferramentas de eSocial e histórico de colaboradores usam adaptadores de demonstração. Não utilize documentos médicos ou de ambiente de trabalho (sintéticos ou reais) em ambientes não confiáveis.
 
@@ -10,6 +10,18 @@ Plataforma multi-tenant de auditoria documental com ingestão assíncrona, Postg
 - `frontend/`: console Next.js 15 para upload de documentos e perguntas de auditoria em streaming.
 - `infra/`: PostgreSQL/pgvector e configuração de serviços locais.
 - `docs/`: decisões de arquitetura e notas de segurança local.
+
+## Fluxos de auditoria, RH e tarefas
+
+- **Controles:** mantenha versões do catálogo NR-1/GRO/PGR por tenant. Novos controles começam como rascunho; uma pessoa autorizada registra revisão e justificativa antes de marcá-los como revisados. O conteúdo de exemplo não substitui validação por profissional de SST ou orientação jurídica.
+- **Achados e evidências:** registre trechos de evidência associados a um controle e documento; o estado e a justificativa da revisão ficam no histórico de auditoria.
+- **Importação de RH:** a primeira integração é por CSV com cabeçalho `external_ref,unit_code,employment_status,effective_date`. Importamos somente identificador de referência, unidade, situação e data efetiva; não importar prontuários nem dados clínicos. `HrConnector` é a interface para adicionar depois um adaptador TOTVS, Senior, SAP ou outro escolhido com o cliente piloto.
+- **Tarefas e avisos:** achados podem gerar tarefas atribuídas e com prazo. Um outbox tenta entregar eventos a um webhook configurado; o aviso não inclui conteúdo de saúde, evidência ou e-mail do responsável. Sem webhook, as tarefas continuam disponíveis no sistema.
+- **Fila diária e gatilhos de RH:** `GET /api/v1/tasks/inbox` resume tarefas em aberto, atrasadas, vencendo hoje e nos próximos sete dias. Importar um vínculo ativo novo, mudar unidade ou alterar situação cadastral cria uma tarefa genérica de revisão SST; reimportar dados sem mudança não duplica a tarefa. O aviso externo não leva identificador do vínculo, nome, prontuário ou dado clínico. O prazo inicial é sete dias após a importação.
+- **Lembretes do plano de ação:** tarefas categorizadas como ação do PGR aparecem junto das demais na fila. Com `TASK_WEBHOOK_URL` configurado, o serviço envia um aviso até três dias antes do prazo e repete diariamente enquanto estiver atrasado. O webhook recebe evento, ID da tarefa, prazo e URL do sistema, sem título ou dados do colaborador.
+- **Autenticação:** o navegador usa OIDC Authorization Code + PKCE no Keycloak local. A sessão fica em cookie HttpOnly; o token não é exposto ao JavaScript. O servidor Next.js encaminha as chamadas autenticadas para a API.
+
+As APIs principais estão sob `/api/v1/controls`, `/api/v1/findings`, `/api/v1/hr/import`, `/api/v1/hr/records`, `/api/v1/tasks` e `/api/v1/audit/events`. Todas derivam o tenant da claim `tenant_id` do JWT validado.
 
 ## Por que Java e Spring Boot?
 A minha base é sempre TypeScript, JavaScript, Tailwind e React. Há a necessidade de investir em outras linguages que aprendi por anos.
@@ -56,12 +68,9 @@ Na primeira execução, prepare `.env` e baixe os modelos Ollama descritos acima
 
 ## Login
 
-O console abre em **http://localhost:3000/login**. Use as credenciais de demonstração provisionadas no Keycloak local:
+O console abre em **http://localhost:3000/login** e redireciona para o Keycloak local. Entre com a conta de demonstração provisionada no realm local. As credenciais estão definidas na configuração do Keycloak em `infra/keycloak`; altere-as para qualquer ambiente compartilhado. A claim `tenant_id` da conta demo identifica o tenant `00000000-0000-0000-0000-000000000001`.
 
-- **E-mail:** `auditor@local.demo`
-- **Senha:** `demo123`
-
-O token recebido inclui a claim `tenant_id` do tenant local `00000000-0000-0000-0000-000000000001`. Após entrar, a sessão permanece ativa até você clicar em **Sair**.
+Para desenvolvimento do frontend fora do Compose, copie `frontend/.env.example` para `frontend/.env.local`. Configure `APP_BASE_URL`, `BACKEND_API_URL`, `OIDC_ISSUER_URI`, `OIDC_INTERNAL_ISSUER_URI`, `OIDC_CLIENT_ID` e um `AUTH_SESSION_SECRET` aleatório com pelo menos 32 caracteres. O `.env.example` na raiz é consumido pelo Compose.
 
 ## Ver só a interface web
 
@@ -78,6 +87,9 @@ Abra **http://localhost:3000**. Sem sessão, você será redirecionada para a te
 - `POST /api/v1/documents/upload` — campo multipart `file`; retorna ID do documento e estado da ingestão.
 - `GET /api/v1/documents/{id}` — estado da ingestão escopado por tenant.
 - `POST /api/v1/chat/stream` — JSON `{ "question": "..." }`; transmite eventos `text/event-stream` (`token`, `citations`, `done`).
+- `GET /api/v1/controls`, `GET /api/v1/findings`, `GET /api/v1/tasks` e `GET /api/v1/audit/events` — consulta escopada pelo tenant autenticado.
+- `GET /api/v1/tasks/inbox` — contadores e fila ordenada por urgência.
+- `POST /api/v1/hr/import` — importa CSV mínimo de RH; requer papel `AUDIT_ADMIN` ou `HR_INTEGRATION`.
 - `GET /actuator/health` — saúde do serviço.
 - Servidor MCP Streamable HTTP — `/mcp`; proteja com a mesma política OIDC resource-server antes de expor fora do localhost.
 

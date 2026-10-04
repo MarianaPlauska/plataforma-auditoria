@@ -39,9 +39,9 @@ import {
   IconUpload,
   IconUser,
 } from "@tabler/icons-react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { AuditEvent, Citation, readAuditEvents } from "@/lib/sse";
+import { AuditOperations } from "@/components/AuditOperations";
 
 type UploadResult = { id: string; status: string; message?: string };
 type Message = { role: "assistant" | "user"; text: string; citations?: Citation[] };
@@ -50,7 +50,7 @@ type DocumentPage = { items: DocumentRow[]; totalElements: number };
 type DocumentMetrics = { total: number; received: number; processing: number; ready: number; failed: number };
 
 const emptyMetrics: DocumentMetrics = { total: 0, received: 0, processing: 0, ready: 0, failed: 0 };
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const apiBase = "/api/backend";
 
 function statusColor(status: string): string {
   switch (status.toUpperCase()) {
@@ -84,9 +84,7 @@ function ColorSchemeToggle() {
 }
 
 export function Dashboard() {
-  const router = useRouter();
   const { session, logout } = useAuth();
-  const token = session?.accessToken ?? "";
   const [file, setFile] = useState<File | null>(null);
   const [upload, setUpload] = useState<UploadResult | null>(null);
   const [question, setQuestion] = useState("");
@@ -100,18 +98,16 @@ export function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   function handleLogout() {
-    logout();
-    router.replace("/login");
+    void logout();
   }
 
   useEffect(() => {
     const controller = new AbortController();
     setLoadingDocuments(true);
     setDataError("");
-    const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch(`${apiBase}/api/v1/documents?page=0&size=8`, { headers, signal: controller.signal }),
-      fetch(`${apiBase}/api/v1/documents/summary`, { headers, signal: controller.signal }),
+      fetch(`${apiBase}/api/v1/documents?page=0&size=8`, { signal: controller.signal }),
+      fetch(`${apiBase}/api/v1/documents/summary`, { signal: controller.signal }),
     ]).then(async ([listResponse, summaryResponse]) => {
       if (!listResponse.ok || !summaryResponse.ok) {
         throw new Error(`Não foi possível carregar os dados (${!listResponse.ok ? listResponse.status : summaryResponse.status})`);
@@ -129,7 +125,7 @@ export function Dashboard() {
       if (!controller.signal.aborted) setLoadingDocuments(false);
     });
     return () => controller.abort();
-  }, [token, refreshKey]);
+  }, [refreshKey]);
 
   async function uploadDocument(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,7 +134,7 @@ export function Dashboard() {
     try {
       const body = new FormData(); body.append("file", file);
       const response = await fetch(`${apiBase}/api/v1/documents/upload`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}` }, body,
+        method: "POST", body,
       });
       if (!response.ok) throw new Error(`Falha no envio (${response.status})`);
       const result = (await response.json()) as UploadResult;
@@ -156,7 +152,6 @@ export function Dashboard() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       try {
         const response = await fetch(`${apiBase}/api/v1/documents/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) continue;
         const result = (await response.json()) as UploadResult;
@@ -178,7 +173,7 @@ export function Dashboard() {
     try {
       const response = await fetch(`${apiBase}/api/v1/chat/stream`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "text/event-stream" },
+        headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
         body: JSON.stringify({ question: prompt }),
       });
       await readAuditEvents(response, (event: AuditEvent) => {
@@ -360,6 +355,8 @@ export function Dashboard() {
               </Stack>
             </Card>
           </SimpleGrid>
+
+          <AuditOperations documents={documents.filter((document) => document.status === "READY")} />
 
           <Card withBorder radius="md" padding="lg">
             <Group justify="space-between" mb="md" wrap="wrap">

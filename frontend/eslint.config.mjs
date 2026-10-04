@@ -12,4 +12,10 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
     },
   },
+  {
+    files: ["**/*.cjs"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 );
