@@ -100,3 +100,7 @@ Abra **http://localhost:3000**. Sem sessão, você será redirecionada para a te
 - O CI executa os dois builds em pushes e pull requests.
 
 O superusuário de bootstrap do Postgres é separado de `audit_app`; a API conecta como `audit_app`, um papel sem privilégios de superusuário sujeito a RLS forçado.
+
+## Deploy (sem Vercel)
+
+Para publicar em produção sem usar a Vercel, o caminho recomendado é o **Railway**: Postgres gerenciado + serviços Docker para API, frontend e Keycloak. O passo a passo está em [`docs/deploy-railway.md`](docs/deploy-railway.md).
